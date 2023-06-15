@@ -89,7 +89,7 @@ func main() {
 	bucketName := flag.String("bucket", os.Getenv("S3_BUCKETNAME"), "the name of the S3 Bucket")
 	secretKey := flag.String("secret-key", os.Getenv("S3_SECRETKEY"), "secret key")
 	accessDns := flag.String("access-dns", *endpoint, "the dns")
-	accessDnsNoBucketName := flag.Bool("no-access-dns-bucket-name", false, "WIP")
+	accessUrlNoBucketName := flag.Bool("no-access-url-bucket-name", false, "The bucket name should not appear in the printed access url")
 	printURL := flag.Bool("print-url", false, "print the url to access this object")
 	getShareURL := flag.Bool("share-url", false, "get the share url")
 	debugOutput := flag.Bool("verbose", false, "if you want to get verbose output")
@@ -191,7 +191,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if *printURL {
-		fmt.Println(getURL(*accessDns, *bucketName, objectName, !*accessDnsNoBucketName))
+		fmt.Println(getURL(*accessDns, *bucketName, objectName, !*accessUrlNoBucketName))
 	} else if *getShareURL {
 		shareURL, _ := minioClient.PresignedGetObject(context.Background(), *bucketName, objectName, time.Duration(24*time.Hour), nil)
 		fmt.Println(shareURL)
