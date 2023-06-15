@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -30,6 +31,17 @@ func getURL(dns string, bucket string, filename string, includeBucketName bool) 
 	return retVal
 }
 
+func checkIfFileIsValid(file *os.File) bool {
+	fileStat, err := file.Stat()
+	if err != nil {
+		return false
+	} else if fileStat.Size() == 0 {
+		return false
+	} else {
+		return true
+	}
+}
+
 func hashFile(file os.File) string {
 	f, _ := os.Open(file.Name())
 	h := sha256.New()
@@ -38,6 +50,29 @@ func hashFile(file os.File) string {
 	}
 
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func getContentTypeOfFileFromFileName(file *os.File) string {
+	contentType := "application/octet-stream"
+	fileName := file.Name()
+	if strings.HasSuffix(fileName, ".jpg") || strings.HasSuffix(fileName, ".jpeg") {
+		contentType = "image/jpeg"
+	} else if strings.HasSuffix(fileName, ".png") {
+		contentType = "image/png"
+	} else if strings.HasSuffix(fileName, ".gif") {
+		contentType = "image/gif"
+	} else if strings.HasSuffix(fileName, ".tif") || strings.HasSuffix(fileName, ".tiff") {
+		contentType = "image/tiff"
+	} else if strings.HasSuffix(fileName, ".txt") {
+		contentType = "text/plain"
+	} else if strings.HasSuffix(fileName, ".webp") {
+		contentType = "image/webp"
+	} else if strings.HasSuffix(fileName, ".svg") {
+		contentType = "image/svg+xml"
+	} else if strings.HasSuffix(fileName, ".ico") {
+		contentType = "image/vnd.microsoft.icon"
+	}
+	return contentType
 }
 
 func main() {
@@ -57,6 +92,7 @@ func main() {
 	accessDnsNoBucketName := flag.Bool("no-access-dns-bucket-name", false, "WIP")
 	printURL := flag.Bool("print-url", false, "print the url to access this object")
 	getShareURL := flag.Bool("share-url", false, "get the share url")
+	debugOutput := flag.Bool("verbose", false, "if you want to get verbose output")
 	flag.Parse()
 	if len(*sourcePathFlag) == 0 {
 		println("please provide the path to the source file using the \"-src\" flag")
@@ -82,9 +118,21 @@ func main() {
 	prefix := *destPrefixFlag
 
 	// Open the image file.
+	if *debugOutput {
+		// debug output
+		log.Println("opening file: " + imagePath)
+	}
 	file, err := os.Open(imagePath)
+	filename := filepath.Base(imagePath)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if *debugOutput {
+		fileStat, err := file.Stat()
+		if err != nil {
+			log.Panic(err)
+		}
+		log.Printf("opened file has the size of %d\n", fileStat.Size())
 	}
 	defer file.Close()
 
@@ -94,20 +142,28 @@ func main() {
 		log.Fatal(err)
 	}
 	bytes, err := ioutil.ReadFile(file.Name())
-	cleanBytes, err := exifremove.Remove(bytes)
-	tempFile.Write(cleanBytes)
-	defer os.Remove(tempFile.Name())
-	if err != nil {
-		log.Fatal(err)
+	if *debugOutput {
+		log.Println("trying to clean exif data from file")
 	}
-	tempFile.Close()
+	cleanBytes, err := exifremove.Remove(bytes)
+	_, err = tempFile.Write(cleanBytes)
+	if err != nil {
+		log.Panic(err)
+	}
+	if !checkIfFileIsValid(tempFile) {
+		log.Println("cleaned file is invalid. Falling back to uncleaned file")
+		_, err = tempFile.Write(bytes)
+		if err != nil {
+			log.Panic(err)
+		}
+	}
 
 	// Upload the image to Minio.
 	useSSL := true
 	if os.Getenv("S3_USESSL") == "false" {
 		useSSL = false
 	}
-	objectName := prefix + "/" + hashFile(*file)
+	objectName := prefix + "/" + hashFile(*file) + "/" + filename
 
 	// Initialize the Minio client.
 	minioClient, err := minio.New(*endpoint, &minio.Options{
@@ -119,25 +175,8 @@ func main() {
 	}
 
 	// Set the content type of the object based on its file extension.
-	contentType := "application/octet-stream"
-	fileName := file.Name()
-	if strings.HasSuffix(fileName, ".jpg") || strings.HasSuffix(objectName, ".jpeg") {
-		contentType = "image/jpeg"
-	} else if strings.HasSuffix(fileName, ".png") {
-		contentType = "image/png"
-	} else if strings.HasSuffix(fileName, ".gif") {
-		contentType = "image/gif"
-	} else if strings.HasSuffix(fileName, ".tif") || strings.HasSuffix(fileName, ".tiff") {
-		contentType = "image/tiff"
-	} else if strings.HasSuffix(fileName, ".txt") {
-		contentType = "text/plain"
-	} else if strings.HasSuffix(fileName, ".webp") {
-		contentType = "image/webp"
-	} else if strings.HasSuffix(fileName, ".svg") {
-		contentType = "image/svg+xml"
-	} else if strings.HasSuffix(fileName, ".ico") {
-		contentType = "image/vnd.microsoft.icon"
-	}
+
+	contentType := getContentTypeOfFileFromFileName(tempFile)
 	UserTags := make(map[string]string)
 	UserTags["agent"] = "Ryes-Minio-Image-Uploader"
 	if *getShareURL {
@@ -158,5 +197,14 @@ func main() {
 		fmt.Println(shareURL)
 	} else {
 		fmt.Printf("Uploaded %s to %s/%s\n", imagePath, *bucketName, objectName)
+	}
+	err = tempFile.Close()
+	if err != nil {
+		log.Panic(err)
+	}
+	defer os.Remove(tempFile.Name())
+	err = file.Close()
+	if err != nil {
+		log.Panic(err)
 	}
 }
