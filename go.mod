@@ -1,6 +1,12 @@
 module MinioImageUploader
 
-go 1.20
+go 1.23.0
+
+require (
+	github.com/joho/godotenv v1.5.1
+	github.com/minio/minio-go/v7 v7.0.52
+	github.com/scottleedavis/go-exif-remove v0.0.0-20230314195146-7e059d593405
+)
 
 require (
 	github.com/dsoprea/go-exif v0.0.0-20190901173045-3ce78807c90f // indirect
@@ -11,23 +17,19 @@ require (
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/golang/geo v0.0.0-20190812012225-f41920e961ce // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.52 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/rs/xid v1.4.0 // indirect
-	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd // indirect
-	github.com/scottleedavis/go-exif-remove v0.0.0-20230314195146-7e059d593405 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	golang.org/x/crypto v0.6.0 // indirect
-	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
