@@ -1,0 +1,24 @@
+name: "Test Nix Flake"
+
+on:
+  pull_request:
+  push:
+    branches: [main,nix]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: wimpysworld/nothing-but-nix@main
+
+      # Install Nix with flake support
+      - uses: DeterminateSystems/determinate-nix-action@v3
+
+      # Build the flake's default package
+      - name: Build flake
+        run: nix build . -L
+
+      # Run the flake's checks
+      - name: Run flake checks
+        run: nix flake check
