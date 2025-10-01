@@ -16,7 +16,7 @@
       };
       apps.default = {
         type = "app";
-        program = "${self.packages.${system}.default}/bin/my-go-program";
+        program = "${self.packages.${system}.default}/bin/minio-image-uploader";
       };
     });
 }
